@@ -1,9 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
+import Login from "@/pages/Login";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Metrics from "./pages/Metrics";
 import Financial from "./pages/Financial";
@@ -14,40 +17,63 @@ import AsaasIntegration from "./pages/AsaasIntegration";
 import CheckoutPage from "./pages/CheckoutPage";
 import DashboardLayout from "./components/DashboardLayout";
 
-
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => <DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/metrics" component={() => <DashboardLayout><Metrics /></DashboardLayout>} />
-      <Route path="/financial" component={() => <DashboardLayout><Financial /></DashboardLayout>} />
-      <Route path="/users" component={() => <DashboardLayout><UsersManagement /></DashboardLayout>} />
-      <Route path="/analytics" component={() => <DashboardLayout><LastlinkIntegration /></DashboardLayout>} />
-      <Route path="/asaas" component={() => <DashboardLayout><AsaasIntegration /></DashboardLayout>} />
+      <Route path="/login" component={Login} />
+      <Route path="/" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><Dashboard /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/metrics" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><Metrics /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/financial" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><Financial /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/users" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><UsersManagement /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/analytics" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><LastlinkIntegration /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
+      <Route path="/asaas" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><AsaasIntegration /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
       <Route path="/checkout" component={CheckoutPage} />
-      <Route path="/parameters" component={() => <DashboardLayout><ParametersManagement /></DashboardLayout>} />
+      <Route path="/parameters" component={() => (
+        <ProtectedRoute>
+          <DashboardLayout><ParametersManagement /></DashboardLayout>
+        </ProtectedRoute>
+      )} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="dark"
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="dark">
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </ThemeProvider>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

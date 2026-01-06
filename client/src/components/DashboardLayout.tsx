@@ -4,9 +4,10 @@
  */
 
 import { useState } from "react";
-import { Activity, BarChart3, DollarSign, Settings, TrendingUp, Users, Zap, CreditCard, Menu, X } from "lucide-react";
+import { Activity, BarChart3, DollarSign, Settings, TrendingUp, Users, Zap, CreditCard, Menu, X, LogOut } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ const navItems = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-background cyber-grid">
@@ -70,6 +72,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           >
             Preview Checkout
           </Link>
+          {user && (
+            <div className="pt-2 border-t border-accent/20">
+              <p className="text-xs text-muted-foreground truncate mb-2">{user.email}</p>
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 w-full px-3 py-2 rounded text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sair</span>
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             <span>TERMINAL ATIVO</span>
@@ -139,6 +153,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           >
             Preview Checkout
           </Link>
+          {user && (
+            <div className="pt-2 border-t border-accent/20">
+              <p className="text-xs text-muted-foreground truncate mb-2">{user.email}</p>
+              <button
+                onClick={() => { setMobileMenuOpen(false); logout(); }}
+                className="flex items-center gap-2 w-full px-3 py-2 rounded text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sair</span>
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             <span>TERMINAL ATIVO</span>
