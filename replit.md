@@ -25,6 +25,17 @@ A React + Vite admin dashboard application for Genesis Labs. The application pro
 └── dist/             # Build output
 ```
 
+## Authentication
+The application uses token-based authentication with Laravel Sanctum. Users must configure their Laravel API URL and login with email/password.
+
+### Required Laravel API Endpoints
+- `POST /api/login` - Accepts `{email, password}`, returns `{token, user}`
+- `GET /api/user` - Returns authenticated user data (requires Bearer token)
+- `POST /api/logout` (optional) - Revoke token server-side
+
+### Configuration
+Users can configure the API URL via the login page settings. The token is stored in localStorage.
+
 ## Development
 - Uses pnpm as package manager
 - Dev server runs on port 5000 with `npm run dev`

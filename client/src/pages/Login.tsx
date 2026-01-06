@@ -122,6 +122,7 @@ export default function Login() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
                     className="bg-[#1a1a24] border-gray-700 text-white placeholder:text-gray-500"
                   />
                 </div>
@@ -136,6 +137,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     className="bg-[#1a1a24] border-gray-700 text-white placeholder:text-gray-500"
                   />
                 </div>
