@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import axios from "axios";
+import { api } from "../services/api";
 
 interface User {
   id: number;
@@ -9,7 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -20,98 +20,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  TOKEN: "auth_token",
-  USER: "auth_user",
-  API_URL: "api_url",
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem(STORAGE_KEYS.USER);
-    return stored ? JSON.parse(stored) : null;
-  });
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem(STORAGE_KEYS.TOKEN);
-  });
+  const [user, setUser] = useState<User | null>(() => api.getStoredUser());
+  const [accessToken, setAccessToken] = useState<string | null>(() => api.getAccessToken());
   const [isLoading, setIsLoading] = useState(true);
-  const [apiUrl, setApiUrlState] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.API_URL) || "";
-  });
+  const [apiUrl, setApiUrlState] = useState(() => api.getApiUrl());
 
   const setApiUrl = (url: string) => {
-    const normalizedUrl = url.endsWith("/") ? url.slice(0, -1) : url;
-    setApiUrlState(normalizedUrl);
-    localStorage.setItem(STORAGE_KEYS.API_URL, normalizedUrl);
+    api.setApiUrl(url);
+    setApiUrlState(api.getApiUrl());
   };
 
   useEffect(() => {
     const validateToken = async () => {
-      if (!token || !apiUrl) {
+      if (!accessToken || !apiUrl) {
         setIsLoading(false);
         return;
       }
 
       try {
-        const response = await axios.get(`${apiUrl}/api/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
-        setUser(response.data);
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data));
+        const userData = await api.getUser();
+        setUser(userData);
       } catch (error) {
-        setToken(null);
+        api.clearAuth();
+        setAccessToken(null);
         setUser(null);
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER);
       } finally {
         setIsLoading(false);
       }
     };
 
     validateToken();
-  }, [token, apiUrl]);
+  }, [accessToken, apiUrl]);
 
   const login = async (email: string, password: string) => {
-    if (!apiUrl) {
-      throw new Error("API URL não configurada");
-    }
-
-    const response = await axios.post(
-      `${apiUrl}/api/login`,
-      { email, password },
-      {
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const { token: newToken, user: userData } = response.data;
-    
-    setToken(newToken);
+    const { access_token, user: userData } = await api.login(email, password);
+    setAccessToken(access_token);
     setUser(userData);
-    localStorage.setItem(STORAGE_KEYS.TOKEN, newToken);
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
   };
 
-  const logout = () => {
-    setToken(null);
+  const logout = async () => {
+    await api.logout();
+    setAccessToken(null);
     setUser(null);
-    localStorage.removeItem(STORAGE_KEYS.TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.USER);
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
+        accessToken,
         isLoading,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated: !!user && !!accessToken,
         login,
         logout,
         setApiUrl,
