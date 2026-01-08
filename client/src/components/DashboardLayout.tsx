@@ -18,8 +18,8 @@ const navItems = [
   { icon: BarChart3, label: "Métricas", path: "/metrics" },
   { icon: DollarSign, label: "Financeiro", path: "/financial" },
   { icon: Users, label: "Usuários", path: "/users" },
-  { icon: TrendingUp, label: "Análises", path: "/analytics" },
-  { icon: CreditCard, label: "Checkout", path: "/asaas" },
+  { icon: TrendingUp, label: "Assinaturas", path: "/analytics" },
+  //{ icon: CreditCard, label: "Checkout", path: "/asaas" },
   { icon: Settings, label: "Parâmetros", path: "/parameters" },
 ];
 
@@ -66,12 +66,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-accent/30 space-y-2">
+          {/*
           <Link
             href="/checkout"
             className="block w-full px-3 py-2 rounded text-xs font-bold text-accent-foreground bg-accent hover:opacity-90 transition-all text-center"
           >
             Preview Checkout
           </Link>
+          */}
           {user && (
             <div className="pt-2 border-t border-accent/20">
               <p className="text-xs text-muted-foreground truncate mb-2">{user.email}</p>
@@ -84,10 +86,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </button>
             </div>
           )}
+          {/*
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             <span>TERMINAL ATIVO</span>
           </div>
+          */}
           <p className="text-xs text-muted-foreground/60">v2.0.1 • Gemini 3.0</p>
         </div>
       </aside>

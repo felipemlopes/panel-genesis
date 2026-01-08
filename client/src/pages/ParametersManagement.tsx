@@ -11,48 +11,69 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCostAndExchangeData } from "@/lib/external-apis";
+import { api } from "@/services/api.ts";
+
+type Plan = {
+  id: number;
+  name: string;
+  price: number;
+  price_per_credit: number;
+  credits: number;
+};
 
 export default function ParametersManagement() {
   const [params, setParams] = useState({
     // Créditos iniciais
-    initialCredits: 2100,
-    
+    initialCredits: 0,
     // Custos por operação (em créditos)
-    analysisCredits: 100,
-    searchCredits: 20,
-    
-    // Planos de créditos (em USD)
-    plan1Credits: 500,
-    plan1Price: 5.99,
-    plan2Credits: 1200,
-    plan2Price: 11.99,
-    plan3Credits: 3000,
-    plan3Price: 25.99,
-    plan4Credits: 7000,
-    plan4Price: 49.99,
-    
+    analysisCredits: 0,
+    searchCredits: 0,
     // Taxas Asaas
     asaasPercentage: 1.99,
     asaasFixed: 0.49,
-    
     // Custos Gemini (USD)
-    geminiAnalysisCost: 0.15,
-    geminiSearchCost: 0.03,
-    
+    geminiAnalysisCost: 0.00,
+    geminiSearchCost: 0.00,
     // Custo Google Cloud (USD/mês)
-    googleCloudCost: 847.15,
-    
+    googleCloudCost: 0.00,
     // Taxa de câmbio
     usdBrlRate: 5.53,
   });
-
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
   const [isLoadingExternalData, setIsLoadingExternalData] = useState(false);
 
   // Carrega dados externos ao montar o componente
   useEffect(() => {
     loadExternalData();
+    loadParams();
+    loadPlans();
   }, []);
+
+  const loadParams = async () => {
+    try {
+      const data = await api.getParameters();
+      console.log(data.data);
+      setParams(data.data);
+    } catch {
+      toast.error("Erro ao carregar parâmetros");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadPlans = async () => {
+    try {
+      const data = await api.getPlans();
+      console.log(data.data);
+      setPlans(data.data);
+    } catch {
+      toast.error("Erro ao carregar planos");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadExternalData = async () => {
     setIsLoadingExternalData(true);
@@ -82,37 +103,36 @@ export default function ParametersManagement() {
     setHasChanges(true);
   };
 
-  const handleSave = () => {
-    // Aqui você faria a chamada para API para salvar os parâmetros
-    toast.success("Parâmetros salvos com sucesso!", {
-      description: "As alterações foram aplicadas ao sistema.",
-    });
-    setHasChanges(false);
+  const handleUpdatePlan = async (planId: number, data: Partial<Plan>) => {
+    try {
+      await api.post(`/plans/${planId}`, data);
+      toast.success("Plano atualizado com sucesso");
+    } catch (error) {
+      toast.error("Erro ao atualizar plano");
+    }
   };
 
-  const handleReset = () => {
-    // Reset para valores padrão
-    setParams({
-      initialCredits: 2100,
-      analysisCredits: 100,
-      searchCredits: 20,
-      plan1Credits: 500,
-      plan1Price: 5.99,
-      plan2Credits: 1200,
-      plan2Price: 11.99,
-      plan3Credits: 3000,
-      plan3Price: 25.99,
-      plan4Credits: 7000,
-      plan4Price: 49.99,
-      asaasPercentage: 1.99,
-      asaasFixed: 0.49,
-      geminiAnalysisCost: 0.15,
-      geminiSearchCost: 0.03,
-      googleCloudCost: 847.15,
-      usdBrlRate: 5.53,
-    });
-    toast.info("Parâmetros resetados para valores padrão");
-    setHasChanges(false);
+  const updatePlanField = (
+    planId: number,
+    field: keyof Plan,
+    value: number
+  ) => {
+    setPlans((prev) =>
+      prev.map((plan) =>
+        plan.id === planId ? { ...plan, [field]: value } : plan
+      )
+    );
+  };
+
+  const handleSave = async () => {
+    try {
+      await api.post(`/settings`, params);
+      toast.success("Parâmetros salvos com sucesso!", {
+        description: "As alterações foram aplicadas ao sistema.",
+      });
+    } catch (error) {
+      toast.error("Erro ao atualizar parâmetros");
+    }
   };
 
   return (
@@ -123,13 +143,14 @@ export default function ParametersManagement() {
           <p className="text-sm text-muted-foreground mt-1">Parametrize créditos, custos e planos</p>
         </div>
         <div className="flex items-center gap-3">
+          {/*
           <Button onClick={handleReset} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
             Resetar
           </Button>
+          */}
           <Button 
-            onClick={handleSave} 
-            disabled={!hasChanges}
+            onClick={handleSave}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
             size="sm"
           >
@@ -223,50 +244,81 @@ export default function ParametersManagement() {
           <div className="bg-card rounded-lg border border-border p-6">
             <div className="flex items-center gap-3 mb-6">
               <CreditCard className="w-5 h-5 text-chart-3" />
-              <h3 className="text-lg font-semibold text-foreground">Planos de Compra de Créditos</h3>
+              <h3 className="text-lg font-semibold text-foreground">
+                Planos de Compra de Créditos
+              </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((planNum) => (
-                <div key={planNum} className="bg-secondary/50 rounded-lg p-5 border border-border">
-                  <h4 className="text-base font-semibold text-primary mb-4">PLANO {planNum}</h4>
-                  
+              {plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className="bg-secondary/50 rounded-lg p-5 border border-border"
+                >
+                  <h4 className="text-base font-semibold text-primary mb-4">
+                    {plan.name}
+                  </h4>
+
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Créditos</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Créditos
+                      </Label>
                       <Input
                         type="number"
-                        value={params[`plan${planNum}Credits` as keyof typeof params]}
-                        onChange={(e) => handleChange(`plan${planNum}Credits`, e.target.value)}
+                        value={plan.credits}
                         className="bg-secondary border-border font-semibold"
+                        onChange={(e) =>
+                          updatePlanField(plan.id, "credits", Number(e.target.value))
+                        }
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Preço (USD)</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Preço (USD)
+                      </Label>
                       <Input
                         type="number"
-                        step="0.01"
-                        value={params[`plan${planNum}Price` as keyof typeof params]}
-                        onChange={(e) => handleChange(`plan${planNum}Price`, e.target.value)}
+                        value={plan.price}
                         className="bg-secondary border-border font-semibold"
+                        onChange={(e) =>
+                          updatePlanField(plan.id, "price", Number(e.target.value))
+                        }
                       />
                     </div>
 
                     <div className="pt-3 border-t border-border space-y-2">
                       <div>
-                        <p className="text-xs text-muted-foreground">Valor por crédito</p>
+                        <p className="text-xs text-muted-foreground">
+                          Valor por crédito
+                        </p>
                         <p className="text-base font-bold text-accent">
-                          ${(params[`plan${planNum}Price` as keyof typeof params] / params[`plan${planNum}Credits` as keyof typeof params]).toFixed(4)}
+                          ${plan.price_per_credit.toFixed(4)}
                         </p>
                       </div>
+
                       <div>
-                        <p className="text-xs text-muted-foreground">Em Reais (informativo)</p>
+                        <p className="text-xs text-muted-foreground">
+                          Em Reais (informativo)
+                        </p>
                         <p className="text-sm text-gray-500">
-                          R$ {(params[`plan${planNum}Price` as keyof typeof params] * params.usdBrlRate).toFixed(2)}
+                          R$ {(plan.price * params.usdBrlRate).toFixed(2)}
                         </p>
                       </div>
                     </div>
+
+                    <Button
+                      className="w-full"
+                      onClick={() =>
+                        handleUpdatePlan(plan.id, {
+                          price: plan.price,
+                          credits: plan.credits,
+                        })
+                      }
+                    >
+                      Atualizar plano
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -318,13 +370,13 @@ export default function ParametersManagement() {
                     <div className="flex justify-between">
                       <span className="text-sm">Análise:</span>
                       <span className="text-sm font-bold text-destructive">
-                        ${params.geminiAnalysisCost.toFixed(2)} (R$ {(params.geminiAnalysisCost * params.usdBrlRate).toFixed(2)})
+                        {/*${params.geminiAnalysisCost.toFixed(2)} (R$ {(params.geminiAnalysisCost * params.usdBrlRate).toFixed(2)})*/}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Busca:</span>
                       <span className="text-sm font-bold text-destructive">
-                        ${params.geminiSearchCost.toFixed(2)} (R$ {(params.geminiSearchCost * params.usdBrlRate).toFixed(2)})
+                        {/*${params.geminiSearchCost.toFixed(2)} (R$ {(params.geminiSearchCost * params.usdBrlRate).toFixed(2)})*/}
                       </span>
                     </div>
                   </div>

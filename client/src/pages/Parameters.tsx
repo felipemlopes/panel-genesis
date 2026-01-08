@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Settings, Save, DollarSign, Zap, CreditCard } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { api } from "@/services/api.ts";
 
 export default function Parameters() {
   const [params, setParams] = useState({
@@ -46,6 +47,22 @@ export default function Parameters() {
     // Spread de câmbio para checkout (%)
     checkoutSpread: 2.0,
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadParams = async () => {
+      try {
+        const data = await api.getParameters();
+        setParams(data);
+      } catch {
+        toast.error("Erro ao carregar parâmetros");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadParams();
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setParams(prev => ({

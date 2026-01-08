@@ -5,6 +5,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  role: string | null;
 }
 
 interface AuthContextType {
@@ -14,8 +15,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  setApiUrl: (url: string) => void;
-  apiUrl: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,16 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => api.getStoredUser());
   const [accessToken, setAccessToken] = useState<string | null>(() => api.getAccessToken());
   const [isLoading, setIsLoading] = useState(true);
-  const [apiUrl, setApiUrlState] = useState(() => api.getApiUrl());
-
-  const setApiUrl = (url: string) => {
-    api.setApiUrl(url);
-    setApiUrlState(api.getApiUrl());
-  };
 
   useEffect(() => {
     const validateToken = async () => {
-      if (!accessToken || !apiUrl) {
+      if (!accessToken) {
         setIsLoading(false);
         return;
       }
@@ -51,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     validateToken();
-  }, [accessToken, apiUrl]);
+  }, [accessToken]);
 
   const login = async (email: string, password: string) => {
     const { access_token, user: userData } = await api.login(email, password);
@@ -74,8 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user && !!accessToken,
         login,
         logout,
-        setApiUrl,
-        apiUrl,
       }}
     >
       {children}

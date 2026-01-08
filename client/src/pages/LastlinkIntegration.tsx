@@ -3,7 +3,7 @@
  * Sincronização de assinantes Cripto.ico e status de assinaturas
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,6 +18,7 @@ import { RefreshCw, CheckCircle, AlertCircle, Clock, Link as LinkIcon } from "lu
 import { toast } from "sonner";
 import { syncWithLastlink, getLastlinkSubscription } from "@/lib/lastlink-service";
 import CyberCard from "@/components/CyberCard";
+import { api } from "@/services/api.ts";
 
 interface SyncLog {
   timestamp: string;
@@ -29,31 +30,23 @@ interface SyncLog {
 export default function LastlinkIntegration() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncDate, setLastSyncDate] = useState<string | null>("2025-12-19T09:30:00Z");
-  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([
-    {
-      timestamp: "2025-12-19T09:30:00Z",
-      status: "success",
-      message: "Sincronização automática concluída",
-      syncedUsers: 8,
-    },
-    {
-      timestamp: "2025-12-18T09:30:00Z",
-      status: "success",
-      message: "Sincronização automática concluída",
-      syncedUsers: 8,
-    },
-  ]);
+  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([ ]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
-  const [subscriptions, setSubscriptions] = useState<any[]>([
-    { userId: 1, name: "João Silva", status: "active", plan: "Premium", endDate: "2026-01-15" },
-    { userId: 2, name: "Maria Santos", status: "active", plan: "Standard", endDate: "2026-01-08" },
-    { userId: 3, name: "Pedro Costa", status: "active", plan: "Premium", endDate: "2026-01-22" },
-    { userId: 4, name: "Ana Oliveira", status: "active", plan: "Standard", endDate: "2026-01-03" },
-    { userId: 5, name: "Carlos Mendes", status: "active", plan: "Premium", endDate: "2026-01-28" },
-    { userId: 6, name: "Juliana Lima", status: "expired", plan: "Standard", endDate: "2025-12-12" },
-    { userId: 7, name: "Roberto Alves", status: "active", plan: "Premium", endDate: "2026-01-18" },
-    { userId: 8, name: "Fernanda Rocha", status: "active", plan: "Standard", endDate: "2026-01-10" },
-  ]);
+  useEffect(() => {
+    loadSubscriptions();
+  }, []);
+
+  const loadSubscriptions = async () => {
+    try {
+      const data = await api.getSubscriptions();
+      console.log(data.data);
+      setSubscriptions(data.data);
+    } catch {
+      toast.error("Erro ao carregar parâmetros");
+    } finally {
+    }
+  };
 
   const activeSubscriptions = subscriptions.filter(s => s.status === "active").length;
   const expiredSubscriptions = subscriptions.filter(s => s.status === "expired").length;
@@ -123,7 +116,7 @@ export default function LastlinkIntegration() {
   return (
     <div className="space-y-6">
       {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <CyberCard
           title="ASSINATURAS ATIVAS"
           value={activeSubscriptions.toLocaleString()}
@@ -139,7 +132,8 @@ export default function LastlinkIntegration() {
           icon={AlertCircle}
           variant="red"
         />
-        
+
+        {/*
         <CyberCard
           title="ÚLTIMA SINCRONIZAÇÃO"
           value={lastSyncDate ? new Date(lastSyncDate).toLocaleTimeString('pt-BR') : "Nunca"}
@@ -147,9 +141,11 @@ export default function LastlinkIntegration() {
           icon={Clock}
           variant="cyan"
         />
+        */}
       </div>
 
       {/* Seção de Sincronização */}
+      {/*
       <div className="bg-card rounded-lg border border-border p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -165,7 +161,6 @@ export default function LastlinkIntegration() {
             {isSyncing ? 'Sincronizando...' : 'Sincronizar Agora'}
           </Button>
         </div>
-
         <div className="bg-secondary/50 rounded p-4 border border-border">
           <p className="text-sm text-muted-foreground mb-2">Status da Conexão</p>
           <div className="flex items-center gap-2">
@@ -177,6 +172,7 @@ export default function LastlinkIntegration() {
           </p>
         </div>
       </div>
+      */}
 
       {/* Tabela de Assinaturas */}
       <div className="bg-card rounded-lg border border-border">
@@ -233,6 +229,7 @@ export default function LastlinkIntegration() {
       </div>
 
       {/* Log de Sincronizações */}
+      {/*
       <div className="bg-card rounded-lg border border-border">
         <div className="p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">Histórico de Sincronizações</h3>
@@ -264,6 +261,7 @@ export default function LastlinkIntegration() {
           ))}
         </div>
       </div>
+      */}
     </div>
   );
 }

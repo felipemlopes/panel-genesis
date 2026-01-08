@@ -3,7 +3,7 @@
  * Sistema de ativação com dois modos: Lastlink (automático) e Manual (com controle de tempo)
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CyberCard from "@/components/CyberCard";
 import TermsModal from "@/components/TermsModal";
 import { Users as UsersIcon, TrendingUp, Activity, CreditCard, Edit, Power, Plus, Download, Search, Filter, FileText, AlertCircle, CheckCircle, Clock, Zap } from "lucide-react";
@@ -29,9 +29,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { api } from "@/services/api.ts";
+
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  credits: number;
+  analyses: number;
+  searches: number;
+  status: string;
+  joined: string;
+  role: string;
+  lastlinkStatus: string;
+  activationMode: string;
+  manualActivationStart: string | null;
+  manualActivationEnd: string | null;
+  termsSignedDate: string | null;
+  is_admin: boolean;
+};
 
 // Dados simulados de usuários com Lastlink e T&C
-const initialUsers = [
+/*const initialUsers = [
   { id: 1, name: "João Silva", email: "joao@email.com", credits: 1850, analyses: 25, searches: 180, status: "active", joined: "15/01/2025", lastlinkStatus: "active", termsSignedDate: "2025-01-15T10:30:00Z", activationMode: "lastlink" as const, manualActivationStart: null, manualActivationEnd: null },
   { id: 2, name: "Maria Santos", email: "maria@email.com", credits: 450, analyses: 165, searches: 520, status: "active", joined: "08/01/2025", lastlinkStatus: "active", termsSignedDate: "2025-01-08T14:20:00Z", activationMode: "lastlink" as const, manualActivationStart: null, manualActivationEnd: null },
   { id: 3, name: "Pedro Costa", email: "pedro@email.com", credits: 2800, analyses: 12, searches: 95, status: "active", joined: "22/01/2025", lastlinkStatus: "active", termsSignedDate: "2025-01-22T09:15:00Z", activationMode: "lastlink" as const, manualActivationStart: null, manualActivationEnd: null },
@@ -40,25 +59,41 @@ const initialUsers = [
   { id: 6, name: "Juliana Lima", email: "juliana@email.com", credits: 0, analyses: 210, searches: 780, status: "inactive", joined: "12/12/2024", lastlinkStatus: "expired", termsSignedDate: "2024-12-12T13:30:00Z", activationMode: "lastlink" as const, manualActivationStart: null, manualActivationEnd: null },
   { id: 7, name: "Roberto Alves", email: "roberto@email.com", credits: 1450, analyses: 58, searches: 320, status: "active", joined: "18/01/2025", lastlinkStatus: "active", termsSignedDate: "2025-01-18T10:00:00Z", activationMode: "lastlink" as const, manualActivationStart: null, manualActivationEnd: null },
   { id: 8, name: "Fernanda Rocha", email: "fernanda@email.com", credits: 890, analyses: 102, searches: 445, status: "active", joined: "10/01/2025", lastlinkStatus: "active", termsSignedDate: "2025-01-10T15:20:00Z", activationMode: "lastlink" as const, manualActivationStart: null, manualActivationEnd: null },
-];
+];*/
 
 export default function UsersManagement() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
   const [creditsFilter, setCreditsFilter] = useState<"all" | "low" | "medium" | "high">("all");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<typeof initialUsers[0] | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", credits: 0 });
+  const [selectedUser, setSelectedUser] = useState<typeof users[0] | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "", credits: 0, is_admin: false });
   const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [selectedUserForTerms, setSelectedUserForTerms] = useState<number | undefined>(undefined);
   const [addCreditsDialogOpen, setAddCreditsDialogOpen] = useState(false);
-  const [selectedUserForCredits, setSelectedUserForCredits] = useState<typeof initialUsers[0] | null>(null);
-  const [creditsToAdd, setCreditsToAdd] = useState<string>("");
+  const [selectedUserForCredits, setSelectedUserForCredits] = useState<typeof users[0] | null>(null);
+  const [creditsToAdd, setCreditsToAdd] = useState<number>(0);
   const [activationDialogOpen, setActivationDialogOpen] = useState(false);
-  const [selectedUserForActivation, setSelectedUserForActivation] = useState<typeof initialUsers[0] | null>(null);
+  const [selectedUserForActivation, setSelectedUserForActivation] = useState<typeof users[0] | null>(null);
   const [activationMode, setActivationMode] = useState<"lastlink" | "manual">("lastlink");
   const [manualActivationDays, setManualActivationDays] = useState<string>("30");
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const data = await api.getUsers();
+      console.log(data.data);
+      setUsers(data.data);
+    } catch {
+      toast.error("Erro ao carregar planos");
+    } finally {
+
+    }
+  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,50 +116,80 @@ export default function UsersManagement() {
 
   const openEditDialog = (user: typeof initialUsers[0]) => {
     setSelectedUser(user);
-    setEditForm({ name: user.name, email: user.email, credits: user.credits });
+    setEditForm({ name: user.name, email: user.email, credits: user.credits, is_admin: user.is_admin });
     setEditDialogOpen(true);
   };
 
-  const saveUser = () => {
+  const saveUser = async () => {
     if (selectedUser) {
-      setUsers(users.map(u =>
-        u.id === selectedUser.id
-          ? { ...u, name: editForm.name, email: editForm.email, credits: editForm.credits }
-          : u
-      ));
+      try {
+        await api.updateUser(selectedUser.id, editForm);
+        setUsers(
+          users.map(u =>
+            u.id === selectedUser.id
+              ? {
+                  ...u,
+                  name: editForm.name,
+                  email: editForm.email,
+                  credits: editForm.credits,
+                }
+              : u
+          )
+        );
+        toast.success("Usuário atualizado com sucesso");
+      } catch (err) {
+        toast.error("Erro ao atualizar usuário");
+      }
       setEditDialogOpen(false);
-      toast.success("Usuário atualizado com sucesso!");
     }
   };
 
-  const toggleUserStatus = (userId: number) => {
-    setUsers(users.map(u =>
-      u.id === userId
-        ? { ...u, status: u.status === "active" ? "inactive" : "active" }
-        : u
-    ));
-    const user = users.find(u => u.id === userId);
-    toast.success(`Usuário ${user?.name} ${user?.status === "active" ? "desativado" : "ativado"}!`);
+  const toggleUserStatus = async (userId: number) => {
+    try {
+      await api.toggleUserStatus(userId);
+      setUsers(
+        users.map(u =>
+          u.id === userId
+            ? { ...u, status: u.status === "active" ? "inactive" : "active" }
+            : u
+        )
+      );
+      const user = users.find(u => u.id === userId);
+      toast.success(
+        `Usuário ${user?.name} ${user?.status === "active" ? "desativado" : "ativado"}!`
+      );
+    } catch (err) {
+      toast.error("Erro ao atualizar usuário");
+    }
   };
 
-  const addCredits = (userId: number, amount: number) => {
-    setUsers(users.map(u =>
-      u.id === userId
-        ? { ...u, credits: u.credits + amount }
-        : u
-    ));
-    const user = users.find(u => u.id === userId);
-    toast.success(`${amount} créditos adicionados a ${user?.name}!`);
+  const addCredits = async (userId: number, amount: number) => {
+    try {
+      await api.addUserCredits(userId, {credits:amount});
+      setUsers(
+        users.map(u =>
+          u.id === userId ? { ...u, credits: u.credits + amount } : u
+        )
+      );
+      const user = users.find(u => u.id === userId);
+      toast.success(`${amount} créditos adicionados a ${user?.name}!`);
+    } catch (err) {
+      toast.error("Erro ao adicionar créditos");
+    }
   };
 
   const handleAddCreditsClick = (user: typeof initialUsers[0]) => {
     setSelectedUserForCredits(user);
-    setCreditsToAdd("");
+    setCreditsToAdd(0);
     setAddCreditsDialogOpen(true);
   };
 
-  const saveAddCredits = () => {
-    if (!selectedUserForCredits || !creditsToAdd || isNaN(Number(creditsToAdd))) {
+  const saveAddCredits = async () => {
+    if (
+      !selectedUserForCredits ||
+      !creditsToAdd ||
+      isNaN(Number(creditsToAdd))
+    ) {
       toast.error("Por favor, insira uma quantidade válida de créditos");
       return;
     }
@@ -138,9 +203,8 @@ export default function UsersManagement() {
     addCredits(selectedUserForCredits.id, amount);
     setAddCreditsDialogOpen(false);
     setSelectedUserForCredits(null);
-    setCreditsToAdd("");
+    setCreditsToAdd(0);
   };
-
    const handleActivationClick = (user: typeof initialUsers[0]) => {
     setSelectedUserForActivation(user);
     setActivationMode(user.activationMode);
@@ -164,41 +228,73 @@ export default function UsersManagement() {
     }
   };
 
-  const saveActivationMode = () => {
+  const saveActivationMode = async () => {
     if (!selectedUserForActivation) return;
 
     if (activationMode === "manual") {
-      if (!manualActivationDays || isNaN(Number(manualActivationDays)) || Number(manualActivationDays) <= 0) {
+      if (
+        !manualActivationDays ||
+        isNaN(Number(manualActivationDays)) ||
+        Number(manualActivationDays) <= 0
+      ) {
         toast.error("Por favor, insira uma quantidade válida de dias");
         return;
       }
 
       const startDate = new Date();
-      const endDate = new Date(startDate.getTime() + Number(manualActivationDays) * 24 * 60 * 60 * 1000);
+      const endDate = new Date(
+        startDate.getTime() + Number(manualActivationDays) * 24 * 60 * 60 * 1000
+      );
 
-      setUsers(users.map(u =>
-        u.id === selectedUserForActivation.id
-          ? {
-              ...u,
-              activationMode: "manual",
-              manualActivationStart: startDate.toISOString(),
-              manualActivationEnd: endDate.toISOString(),
-            }
-          : u
-      ));
-      toast.success(`Ativação manual configurada por ${manualActivationDays} dias para ${selectedUserForActivation.name}!`);
+      try {
+        await api.updateUserActivation(selectedUserForActivation.id, {
+          activationMode: "manual",
+          manualActivationStart: startDate.toISOString(),
+          manualActivationEnd: endDate.toISOString(),
+        });
+        setUsers(
+          users.map(u =>
+            u.id === selectedUserForActivation.id
+              ? {
+                ...u,
+                activationMode: "manual",
+                manualActivationStart: startDate.toISOString(),
+                manualActivationEnd: endDate.toISOString(),
+              }
+              : u
+          )
+        );
+        toast.success(
+          `Ativação manual configurada por ${manualActivationDays} dias para ${selectedUserForActivation.name}!`
+        );
+      } catch (err) {
+        toast.error("Erro ao atualizar usuário");
+      }
     } else {
-      setUsers(users.map(u =>
-        u.id === selectedUserForActivation.id
-          ? {
-              ...u,
-              activationMode: "lastlink",
-              manualActivationStart: null,
-              manualActivationEnd: null,
-            }
-          : u
-      ));
-      toast.success(`Ativação via Lastlink restaurada para ${selectedUserForActivation.name}!`);
+      try {
+        await api.updateUserActivation(selectedUserForActivation.id, {
+          activationMode: "lastlink",
+          manualActivationStart: null,
+          manualActivationEnd: null,
+        });
+        setUsers(
+          users.map(u =>
+            u.id === selectedUserForActivation.id
+              ? {
+                  ...u,
+                  activationMode: "lastlink",
+                  manualActivationStart: null,
+                  manualActivationEnd: null,
+                }
+              : u
+          )
+        );
+        toast.success(
+          `Ativação via Lastlink restaurada para ${selectedUserForActivation.name}!`
+        );
+      } catch (err) {
+        toast.error("Erro ao atualizar usuário");
+      }
     }
 
     setActivationDialogOpen(false);
@@ -427,18 +523,8 @@ export default function UsersManagement() {
                   <TableCell>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Lastlink</span>
-                        <Switch
-                          checked={user.activationMode === "manual"}
-                          onCheckedChange={() => toggleActivationMode(user)}
-                        />
-                        <span className="text-xs text-muted-foreground">Manual</span>
+                        <span className="text-xs text-muted-foreground">{user.activationMode.charAt(0).toUpperCase() + user.activationMode.slice(1).toLowerCase()}</span>
                       </div>
-                      {user.activationMode === "manual" && (
-                        <p className="text-xs font-semibold text-accent">
-                          {isManualActivationExpired(user) ? "Expirado" : `${getManualActivationRemainingDays(user)} dias`}
-                        </p>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -553,6 +639,21 @@ export default function UsersManagement() {
                 value={editForm.credits}
                 onChange={(e) => setEditForm({ ...editForm, credits: Number(e.target.value) })}
               />
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                id="edit-is-admin"
+                type="checkbox"
+                checked={editForm.is_admin}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, is_admin: e.target.checked })
+                }
+                className="h-4 w-4 rounded border border-border"
+              />
+              <Label htmlFor="edit-is-admin" className="cursor-pointer">
+                Usuário é administrador
+              </Label>
             </div>
           </div>
           <DialogFooter>
