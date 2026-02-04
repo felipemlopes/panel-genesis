@@ -6,6 +6,9 @@
 import CyberCard from "@/components/CyberCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from "recharts";
 import { DollarSign, TrendingUp, Users, Zap, Activity, Database, ArrowUp, ArrowDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "@/services/api.ts";
+import { toast } from "sonner";
 
 // Dados simulados
 const revenueData = [
@@ -36,9 +39,79 @@ const systemInfo = [
 ];
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    revenue:{
+      this_month:0,
+      last_month:0,
+      variation_percent:0,
+    },
+    users: {
+      active_this_month:0,
+      active_last_month:0,
+    },
+    trades: {
+      today:0,
+      average_per_day:0,
+      daily_chart:[],
+    },
+  });
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+  console.log(stats);
+  const loadStats = async () => {
+    try {
+      const data = await api.getStats();
+      setStats(data.data);
+    } catch {
+      toast.error("Erro ao carregar métricas");
+    } finally {
+
+    }
+  };
+
+
+  function getTrend(value: number) {
+    if (value > 0) return 'up'
+    if (value < 0) return 'down'
+    return 'neutral'
+  }
+
+  function formatPercent(value: number) {
+    const sign = value > 0 ? '+' : ''
+    return `${sign}${value.toFixed(1)}%`
+  }
+
+  function formatMoney(value: number) {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    })
+  }
+
+  const revenueThisMonth =
+    stats.revenue.this_month
+
+  const revenueSubtitle =
+    `${formatPercent(stats.revenue.variation_percent)} vs mês anterior`
+
+  const operationsData = useMemo(() => {
+    if (!stats?.trades?.daily_chart) return [];
+
+    return stats.trades.daily_chart.map(item => ({
+      day: new Date(item.date).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit"
+      }),
+      analises: item.total, // se hoje você só tem total
+    }));
+  }, [stats]);
+
   return (
     <div className="space-y-4">
       {/* Informações do Sistema */}
+      {/*
       <div className="bg-card border border-gray-800 rounded p-3 overflow-x-auto">
         <div className="flex gap-4 min-w-max">
           {systemInfo.map((info) => (
@@ -50,6 +123,7 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+      */}
 
       {/* Live Data Feed Label */}
       <div className="text-xs font-bold uppercase text-gray-600 tracking-widest">
@@ -57,37 +131,42 @@ export default function Dashboard() {
       </div>
 
       {/* Cards de métricas principais - 5 colunas */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
         <CyberCard
-          title="RECEITA TOTAL"
-          value="R$ 1.299.312"
-          subtitle="ÚLTIMOS 30 DIAS"
-          icon={DollarSign}
-          trend="up"
-          trendValue="+18.5%"
-          variant="cyan"
+        title="RECEITA TOTAL"
+        value={formatMoney(revenueThisMonth)}
+        subtitle="ÚLTIMOS 30 DIAS"
+        icon={DollarSign}
+        trend={getTrend(stats.revenue.variation_percent)}
+        trendValue={revenueSubtitle}
+        variant="cyan"
         />
-        
+
         <CyberCard
           title="USUÁRIOS ATIVOS"
-          value="3.847"
-          subtitle="ASSINANTES CRIPTO.ICO"
+          value={stats.users.active_this_month}
+          subtitle="ASSINANTES ATIVOS"
           icon={Users}
-          trend="up"
-          trendValue="+12.3%"
+          trend={getTrend(
+            stats.users.active_this_month - stats.users.active_last_month
+          )}
+          trendValue={`${stats.users.active_this_month - stats.users.active_last_month} vs mês anterior`}
           variant="green"
         />
-        
+
         <CyberCard
           title="ANÁLISES HOJE"
-          value="1.523"
-          subtitle="100 CRÉDITOS CADA"
+          value={stats.trades.today}
+          subtitle={`Média: ${stats.trades.average_per_day}/dia`}
           icon={Activity}
-          trend="neutral"
-          trendValue="Média: 1.480/dia"
+          trend={getTrend(
+            stats.trades.today - stats.trades.average_per_day
+          )}
+          trendValue={`vs média`}
           variant="magenta"
         />
-        
+
+        {/*
         <CyberCard
           title="MEMBROS ONLINE"
           value="847"
@@ -98,6 +177,7 @@ export default function Dashboard() {
           variant="purple"
         />
 
+
         <CyberCard
           title="CUSTO GEMINI"
           value="$2.847"
@@ -107,11 +187,13 @@ export default function Dashboard() {
           trendValue="+8.2%"
           variant="cyan"
         />
+        */}
       </div>
 
       {/* Grid com gráficos e cards - 2 colunas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Gráfico de receita vs custos - 2 colunas */}
+        {/*
         <div className="lg:col-span-2 bg-card rounded border border-gray-800 p-4">
           <div className="mb-4">
             <h3 className="text-sm font-bold uppercase text-gray-600 tracking-widest">FLUXO DE CAIXA</h3>
@@ -147,8 +229,10 @@ export default function Dashboard() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+        */}
 
         {/* Card de media de analises por usuario */}
+        {/*
         <div className="bg-card rounded border border-gray-800 p-4 flex flex-col justify-between">
           <div>
             <p className="text-xs font-bold uppercase text-gray-600 tracking-widest">MEDIA DE ANALISES</p>
@@ -161,17 +245,18 @@ export default function Dashboard() {
             <p className="text-xs text-gray-700 mt-2">Media mensal</p>
           </div>
         </div>
+        */}
       </div>
 
       {/* Operações diárias - 2 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
         <div className="bg-card rounded border border-gray-800 p-4">
           <div className="mb-4">
             <h3 className="text-sm font-bold uppercase text-gray-600 tracking-widest">OPERAÇÕES DIÁRIAS</h3>
             <p className="text-xs text-gray-700 mt-0.5">Análises e Buscas por Dia</p>
           </div>
           
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={400}>
             <BarChart data={operationsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.95 0 0 / 0.1)" />
               <XAxis dataKey="day" stroke="oklch(0.60 0.10 195)" style={{ fontSize: '10px' }} />
@@ -191,6 +276,7 @@ export default function Dashboard() {
         </div>
 
         {/* Custos operacionais */}
+        {/*
         <div className="bg-card rounded border border-gray-800 p-4">
           <div className="mb-4">
             <h3 className="text-sm font-bold uppercase text-gray-600 tracking-widest">CUSTOS OPERACIONAIS</h3>
@@ -217,6 +303,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+        */}
       </div>
     </div>
   );

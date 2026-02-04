@@ -6,9 +6,12 @@
 import CyberCard from "@/components/CyberCard";
 import { Activity, Zap, TrendingUp, Clock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { useEffect, useState } from "react";
+import { api } from "@/services/api.ts";
+import { toast } from "sonner";
 
 // Dados simulados
-const hourlyData = [
+/*const hourlyData = [
   { hour: "00h", operations: 45 },
   { hour: "01h", operations: 32 },
   { hour: "02h", operations: 28 },
@@ -33,7 +36,7 @@ const hourlyData = [
   { hour: "21h", operations: 118 },
   { hour: "22h", operations: 95 },
   { hour: "23h", operations: 68 },
-];
+];*/
 
 const operationTypes = [
   { name: "Análises", value: 1523, color: "oklch(0.70 0.35 330)" },
@@ -60,21 +63,72 @@ const topAssets = [
 
 export default function Metrics() {
   const totalOps = operationTypes.reduce((acc, item) => acc + item.value, 0);
+  const [metrics, setMetrics] = useState({
+    operations:{
+      today:0,
+      yesterday:0,
+      variation_percent:0,
+    },
+    peak_usage: {
+      hour:0,
+      total:0,
+    },
+    last_24h_chart: [],
+    top_cryptos: [],
+  });
 
+  useEffect(() => {
+    loadMetrics();
+  }, []);
+  console.log(metrics);
+
+  const hourlyData = metrics.last_24h_chart.map((item: any) => ({
+    hour: item.hour,
+    operations: item.operations
+  }))
+
+  const loadMetrics = async () => {
+    try {
+      const data = await api.getMetrics();
+      console.log(data.data);
+      setMetrics(data.data);
+    } catch {
+      toast.error("Erro ao carregar métricas");
+    } finally {
+
+    }
+  };
+
+  function getTrend(variation: number) {
+    if (variation > 0) return 'up'
+    if (variation < 0) return 'down'
+    return 'neutral'
+  }
+
+  function formatVariation(variation: number) {
+    const sign = variation > 0 ? '+' : ''
+    return `${sign}${variation.toFixed(1)}% vs ontem`
+  }
+
+  function formatHour(hour?: number) {
+    if (hour === null || hour === undefined) return '--'
+    return `${hour.toString().padStart(2, '0')}:00`
+  }
   return (
     <div className="space-y-8">
       {/* Cards de métricas principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         <CyberCard
           title="OPERAÇÕES HOJE"
-          value="5.803"
-          subtitle="ANÁLISES + BUSCAS"
+          value={metrics.operations.today}
+          subtitle="ANÁLISES"
           icon={Activity}
-          trend="up"
-          trendValue="+8.2% vs ontem"
+          trend={getTrend(metrics.operations.variation_percent)}
+          trendValue={formatVariation(metrics.operations.variation_percent)}
           variant="cyan"
         />
-        
+
+        {/*
         <CyberCard
           title="TEMPO MÉDIO"
           value="2.2s"
@@ -84,7 +138,9 @@ export default function Metrics() {
           trendValue="-0.3s melhor"
           variant="green"
         />
-        
+        */}
+
+        {/*
         <CyberCard
           title="TAXA DE SUCESSO"
           value="98.9%"
@@ -94,11 +150,12 @@ export default function Metrics() {
           trendValue="+0.4%"
           variant="magenta"
         />
+        */}
         
         <CyberCard
           title="PICO DE USO"
-          value="16:00"
-          subtitle="265 OPERAÇÕES/HORA"
+          value={formatHour(metrics.peak_usage.hour)}
+          subtitle={`${metrics.peak_usage.total} OPERAÇÕES/HORA`}
           icon={Zap}
           variant="purple"
         />
@@ -145,14 +202,14 @@ export default function Metrics() {
       </div>
 
       {/* Grid de análises */}
+      {/*
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Distribuição de operações */}
         <div className="bg-card rounded border border-border neon-border p-6">
           <div className="mb-6">
             <h3 className="text-xl font-bold text-accent neon-text">Distribuição de Operações</h3>
             <p className="text-sm text-muted-foreground mono">Análises vs Buscas</p>
           </div>
-          
+
           <div className="flex items-center justify-center">
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
@@ -198,7 +255,6 @@ export default function Metrics() {
           </div>
         </div>
 
-        {/* Performance semanal */}
         <div className="bg-card rounded border border-border neon-border p-6">
           <div className="mb-6">
             <h3 className="text-xl font-bold text-chart-4 neon-text">Performance Semanal</h3>
@@ -242,6 +298,7 @@ export default function Metrics() {
           </div>
         </div>
       </div>
+      */}
 
       {/* Top ativos analisados */}
       <div className="bg-card rounded border border-border neon-border p-6">
@@ -251,22 +308,23 @@ export default function Metrics() {
         </div>
 
         <div className="space-y-4">
-          {topAssets.map((asset, idx) => (
-            <div key={asset.symbol} className="flex items-center gap-4 p-4 bg-secondary rounded hover:bg-secondary/70 transition-colors">
+          {metrics.top_cryptos.map((asset, idx) => (
+            <div key={asset.asset} className="flex items-center gap-4 p-4 bg-secondary rounded hover:bg-secondary/70 transition-colors">
               <div className="flex items-center justify-center w-12 h-12 bg-primary/20 rounded neon-border">
                 <span className="text-lg font-bold mono text-primary">#{idx + 1}</span>
               </div>
               
               <div className="flex-1">
-                <p className="text-lg font-bold mono text-primary">{asset.symbol}</p>
+                <p className="text-lg font-bold mono text-primary">{asset.asset}</p>
                 <p className="text-xs text-muted-foreground mono">Criptoativo</p>
               </div>
 
               <div className="text-right">
                 <p className="text-sm text-muted-foreground mono">Análises</p>
-                <p className="text-xl font-bold mono text-chart-3">{asset.analyses}</p>
+                <p className="text-xl font-bold mono text-chart-3">{asset.total}</p>
               </div>
 
+              {/*
               <div className="text-right">
                 <p className="text-sm text-muted-foreground mono">Buscas</p>
                 <p className="text-xl font-bold mono text-accent">{asset.searches}</p>
@@ -276,6 +334,7 @@ export default function Metrics() {
                 <p className="text-sm text-muted-foreground mono">Total</p>
                 <p className="text-xl font-bold mono text-primary">{asset.analyses + asset.searches}</p>
               </div>
+              */}
             </div>
           ))}
         </div>

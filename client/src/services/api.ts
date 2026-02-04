@@ -108,6 +108,16 @@ class ApiService {
     return response.data;
   }
 
+  async getStats(): Promise<any> {
+    const response = await this.client.get("/stats");
+    return response;
+  }
+
+  async getMetrics(): Promise<any> {
+    const response = await this.client.get("/metrics");
+    return response;
+  }
+
   async getParameters(): Promise<any> {
     const response = await this.client.get("/settings");
     return response.data;

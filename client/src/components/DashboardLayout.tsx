@@ -16,7 +16,7 @@ interface DashboardLayoutProps {
 const navItems = [
   { icon: Activity, label: "Dashboard", path: "/" },
   { icon: BarChart3, label: "Métricas", path: "/metrics" },
-  { icon: DollarSign, label: "Financeiro", path: "/financial" },
+  //{ icon: DollarSign, label: "Financeiro", path: "/financial" },
   { icon: Users, label: "Usuários", path: "/users" },
   { icon: TrendingUp, label: "Assinaturas", path: "/analytics" },
   //{ icon: CreditCard, label: "Checkout", path: "/asaas" },

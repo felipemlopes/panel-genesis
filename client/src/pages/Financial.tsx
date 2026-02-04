@@ -245,6 +245,7 @@ export default function Financial() {
       </div>
 
       {/* Projeção financeira */}
+      {/*
       <div className="bg-card rounded border border-border neon-border p-6">
         <div className="mb-6">
           <h3 className="text-xl font-bold text-chart-4 neon-text">Projeção de Receita (6 meses)</h3>
@@ -313,6 +314,7 @@ export default function Financial() {
           </div>
         </div>
       </div>
+      */}
     </div>
   );
 }
