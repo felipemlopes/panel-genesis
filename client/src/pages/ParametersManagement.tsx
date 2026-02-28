@@ -28,6 +28,7 @@ export default function ParametersManagement() {
     // Custos por operação (em créditos)
     analysisCredits: 0,
     searchCredits: 0,
+    testCredits: 0,
     // Taxas Asaas
     asaasPercentage: 1.99,
     asaasFixed: 0.49,
@@ -217,6 +218,20 @@ export default function ParametersManagement() {
                   className="bg-secondary border-border text-base font-semibold"
                 />
                 <p className="text-xs text-muted-foreground">Créditos debitados por busca</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="searchCredits" className="text-sm text-muted-foreground">
+                  Custo por Mind Metrics (Créditos)
+                </Label>
+                <Input
+                  id="testCredits"
+                  type="number"
+                  value={params.testCredits}
+                  onChange={(e) => handleChange("testCredits", e.target.value)}
+                  className="bg-secondary border-border text-base font-semibold"
+                />
+                <p className="text-xs text-muted-foreground">Créditos debitados por teste</p>
               </div>
             </div>
 
